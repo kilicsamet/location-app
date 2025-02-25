@@ -1,37 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# `npm run dev`
 
-First, run the development server:
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+ection about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+
+# `Building Location-App.UI`
+
+Get the project's build using Makefile.
+
+```
+make build-ui
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then, bring up the container.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+make run-dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Location-App.UI will be accessible at `http://localhost:3000`.
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+# `GitHub Actions`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+This project uses GitHub Actions to automate continuous integration and deployment processes. When code changes are made, the application is automatically tested and built. After successful builds, the application is automatically deployed.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## `Version Tagging and Pushing`
 
-## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# location-app
+### `Create a New Version Tag`
+
+When creating a new version for the project, you should update version tags only after pushing your code changes. Follow these steps to tag and push versions.
+```
+ git tag v1.0.1
+
+```
+
+This command tags the current commit as v1.0.1. Tags are used to mark specific points in the repository's history, typically after changes have been made.
+
+### `Push the Tags to the Remote Repository`
+
+```
+git push --tags 
+ 
+```
+This command pushes the created tags to the remote repository
+
+**Note:** Version tags should be created only after code changes have been pushed and tags must always differ from the previous version.
