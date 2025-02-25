@@ -3,6 +3,7 @@
 import Layout from "@/components/layout"
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react"
 import { ThemeProvider } from "next-themes"
+import 'leaflet/dist/leaflet.css';
 
 export default function RootLayout(props: { children: React.ReactNode }) {
   return (
