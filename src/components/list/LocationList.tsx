@@ -26,7 +26,7 @@ const LocationList = () => {
   return (
     <VStack w="full" width="100%" p={4} align="center">
       <Text fontSize="2xl" fontWeight="bold" textAlign="center">
-        📍 Konum Listesiiiii
+        📍 Konum Listesiiii
       </Text>
 
       <Button
