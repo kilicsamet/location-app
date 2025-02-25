@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/locations/list',
+        permanent: true, 
+      },
+    ]
+  },
+
+  webpack: (config) => {
+    config.externals = [...(config.externals || []), "leaflet"];
+    return config;
+  },
 };
 
 export default nextConfig;
