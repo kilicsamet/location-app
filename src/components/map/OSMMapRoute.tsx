@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import dynamic from "next/dynamic";
 import L from "leaflet";
 import { Polyline, useMap, useMapEvent } from "react-leaflet";
@@ -32,7 +32,6 @@ interface Location {
 interface OSMMapProps {
   markers: Location[];
   userLocation: [number, number] | null;
-  routeCoords: [number, number][];
 }
 
 const userLocationIcon = L.divIcon({
@@ -56,26 +55,54 @@ const userLocationIcon = L.divIcon({
   popupAnchor: [0, -32],
 });
 
-const OSMMapRoute = ({ markers, userLocation, routeCoords }: OSMMapProps) => {
+const haversineDistance = (
+  coord1: [number, number],
+  coord2: [number, number]
+): number => {
+  const toRad = (x: number): number => (x * Math.PI) / 180;
+  const R = 6371; // Dünya yarıçapı (km)
+  const dLat = toRad(coord2[0] - coord1[0]);
+  const dLng = toRad(coord2[1] - coord1[1]);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(coord1[0])) *
+      Math.cos(toRad(coord2[0])) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const sortLocationsByProximity = (
+  userLocation: [number, number] | null,
+  locations: Location[]
+): Location[] => {
+  if (!userLocation) return locations;
+  return [...locations].sort(
+    (a, b) =>
+      haversineDistance(userLocation, [a.lat, a.lng]) -
+      haversineDistance(userLocation, [b.lat, b.lng])
+  );
+};
+
+const OSMMapRoute = ({ markers, userLocation }: OSMMapProps) => {
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null
   );
 
-  const markerCoords: [number, number][] = markers.map((m) => [m.lat, m.lng]);
-  const allCoords: [number, number][] = [
-    ...markerCoords,
-    ...(userLocation ? [userLocation] : []),
-    ...routeCoords,
-  ];
+  const sortedMarkers = useMemo(
+    () => sortLocationsByProximity(userLocation, markers),
+    [userLocation, markers]
+  );
 
-  // Ortalama merkez hesaplama
-  const center: [number, number] = allCoords.length
+  const routeCoords: L.LatLng[] = userLocation
     ? [
-        allCoords.reduce((sum, loc) => sum + loc[0], 0) / allCoords.length,
-        allCoords.reduce((sum, loc) => sum + loc[1], 0) / allCoords.length,
+        L.latLng(userLocation[0], userLocation[1]),
+        ...sortedMarkers.map((m) => L.latLng(m.lat, m.lng)),
       ]
-    : [41, 29];
+    : sortedMarkers.map((m) => L.latLng(m.lat, m.lng));
 
+  const center = userLocation || [41, 29];
   const memoizedIcons = useMemo(() => {
     return markers.reduce((acc, loc) => {
       acc[loc.color] =
@@ -94,6 +121,20 @@ const OSMMapRoute = ({ markers, userLocation, routeCoords }: OSMMapProps) => {
     }, {} as Record<string, L.Icon>);
   }, [markers]);
 
+  const memoizedLineColors = (routeLat: number, routeLng: number) => {
+    const matchedMarker = markers.find(
+      (marker) => marker.lat === routeLat && marker.lng === routeLng
+    );
+    return matchedMarker?.color;
+  };
+
+  const memoizedLineMarkers = (routeLat: number, routeLng: number) => {
+    const matchedMarker = markers.find(
+      (marker) => marker.lat === routeLat && marker.lng === routeLng
+    );
+    return matchedMarker;
+  };
+
   return (
     <>
       <MapContainer
@@ -107,17 +148,19 @@ const OSMMapRoute = ({ markers, userLocation, routeCoords }: OSMMapProps) => {
         <MapClickHandler onMapClick={() => setSelectedLocation(null)} />
 
         {userLocation && (
-          <Marker position={userLocation} icon={userLocationIcon} 
-          eventHandlers={{
-            click: () =>
-              setSelectedLocation({
-                id: 1,
-                color: "#ffff",
-                lat: userLocation[0],
-                lng: userLocation[1],
-                name: "Mevcut Konumunuz",
-              }),
-          }}
+          <Marker
+            position={userLocation}
+            icon={userLocationIcon}
+            eventHandlers={{
+              click: () =>
+                setSelectedLocation({
+                  id: 1,
+                  color: "#ffff",
+                  lat: userLocation[0],
+                  lng: userLocation[1],
+                  name: "Mevcut Konumunuz",
+                }),
+            }}
           >
             <Popup>Mevcut Konumunuz</Popup>
           </Marker>
@@ -136,14 +179,53 @@ const OSMMapRoute = ({ markers, userLocation, routeCoords }: OSMMapProps) => {
           </Marker>
         ))}
 
-        {routeCoords.length > 1 && <Polyline positions={routeCoords} color="blue" />}
+        {routeCoords.length > 1 &&
+          routeCoords.slice(1).map((coord, index) => {
+            const prevCoord = routeCoords[index];
+            const nextCoord = routeCoords[index + 1];
+            const markerColor = memoizedLineColors(nextCoord.lat, nextCoord.lng) || "blue";
+            const LocationDetail = memoizedLineMarkers(nextCoord.lat, nextCoord.lng) || null ;
+
+            return (
+              <React.Fragment key={index}>
+                {/* Çizgi */}
+                <Polyline
+                  positions={[prevCoord, coord]}
+                  pathOptions={{
+                    color: markerColor,
+                    weight: 6,
+                    dashArray: "5, 10",
+                    dashOffset: "10",
+                  }}
+                />
+
+                {/* Orta noktada numara etiketi */}
+                <Marker
+                  position={nextCoord}
+                  icon={customNumberIcon(index + 1, markerColor)}
+                  eventHandlers={{
+                    click: () => setSelectedLocation(LocationDetail),
+                  }}
+                >
+                  
+                </Marker>
+              </React.Fragment>
+            );
+          })}
       </MapContainer>
 
       {selectedLocation && (
         <Box bg="white" p={4} borderRadius="md" boxShadow="md" mt={2}>
-          <Text fontSize="lg" fontWeight="bold">Seçili Konum Bilgisi</Text>
-          <Text><strong>Adı:</strong> {selectedLocation.name}</Text>
-          <Text><strong>Koordinatlar:</strong> {selectedLocation.lat}, {selectedLocation.lng}</Text>
+          <Text fontSize="lg" fontWeight="bold">
+            Seçili Konum Bilgisi
+          </Text>
+          <Text>
+            <strong>Adı:</strong> {selectedLocation.name}
+          </Text>
+          <Text>
+            <strong>Koordinatlar:</strong> {selectedLocation.lat},{" "}
+            {selectedLocation.lng}
+          </Text>
         </Box>
       )}
     </>
@@ -166,5 +248,25 @@ const MapClickHandler = ({ onMapClick }: { onMapClick: () => void }) => {
   useMapEvent("click", onMapClick);
   return null;
 };
+const customNumberIcon = (number: number, color: string) =>
+  L.divIcon({
+    className: "custom-marker",
+    html: `<div style="
+      background:${color};
+      opacity: 0.8;
+       position: relative;
+      top:8px;
+      color: white;
+      font-weight: bold;
+      border-radius: 50%;
+      width: 25px;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    ">${number}</div>`,
+    iconSize: [25, 25],
+  });
 
 export default OSMMapRoute;

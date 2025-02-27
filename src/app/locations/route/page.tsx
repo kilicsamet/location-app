@@ -11,7 +11,6 @@ const MapComponent = () => {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(
     null
   );
-  const [routeCoords, setRouteCoords] = useState<[number, number][]>([]);
   useEffect(() => {
     // Kullanıcının mevcut konumunu al
     navigator.geolocation.getCurrentPosition(
@@ -21,13 +20,6 @@ const MapComponent = () => {
           pos.coords.longitude,
         ];
         setUserLocation(userCoords);
-
-        const locationCoords: [number, number][] = locations.map((loc) => [
-          loc.lat,
-          loc.lng,
-        ]);
-
-        setRouteCoords([userCoords, ...locationCoords]);
       },
       (err) => console.error("Konum alınamadı:", err),
       { enableHighAccuracy: true }
@@ -43,7 +35,6 @@ const MapComponent = () => {
       <OSMMapRoute
         markers={locations}
         userLocation={userLocation}
-        routeCoords={routeCoords}
       />
     </Box>
   );
